@@ -1,5 +1,6 @@
 import Discussion from '../models/Discussion.js'
 import mongoose from 'mongoose'
+import DiscussionScore from '../models/DiscussionScore.js'
 
 export const index = async (req, res) => {
     const discussion = await Discussion.aggregate([
@@ -26,9 +27,43 @@ export const index = async (req, res) => {
             $unwind: '$subject'
         },
         {
+            $lookup: {
+                from: 'discussionscores',
+                let: { discussion_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$discussion', '$$discussion_id'] },
+                                    { $eq: ['$user', '$$user_id'] }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: 'matchedScores',
+            }
+        },
+        {
+            $unwind: { path: '$matchedScores', preserveNullAndEmptyArrays: true }
+        },
+        {
+            $addFields: {
+                'score': {
+                    $cond: {
+                        if: { $ne: ['$matchedScores', {}] },
+                        then: '$matchedScores.score',
+                        else: false
+                    }
+                }
+            }
+        },
+        {
             $project: {
                 'subject.students': 0,
-                'user.password': 0
+                'user.password': 0,
+                'matchedScores': 0
             }
         }
     ])
@@ -72,13 +107,44 @@ export const show = async (req, res) => {
                 $unwind: '$subject'
             },
             {
-                $project: {
-                    'subject.students': 0,
-                    'user.password': 0
+                $lookup: {
+                    from: 'discussionscores',
+                    let: { discussion_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$discussion', '$$discussion_id'] },
+                                        { $eq: ['$user', '$$user_id'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'matchedScores'
                 }
             },
             {
-                $sort: { like: 1 }
+                $unwind: { path: '$matchedScores', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $addFields: {
+                    'score': {
+                        $cond: {
+                            if: { $ne: ['$matchedScores', {}] },
+                            then: '$matchedScores.score',
+                            else: false
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    'subject.students': 0,
+                    'user.password': 0,
+                    'matchedScores': 0
+                }
             }
         ])
 
@@ -131,4 +197,22 @@ export const update = async (req, res) => {
 
 export const destroy = async (req, res) => {
 
+}
+
+export const score = async (req, res) => {
+    const session = await mongoose.connection.startSession()
+    try {
+        session.startTransaction()
+        const { id } = req.params
+        const { score } = req.body
+
+        await DiscussionScore.updateOne({ discussion: id, user: req.user._id }, { $set: { score: score } }, { upsert: true, session: session })
+
+        await session.commitTransaction()
+        session.endSession()
+        return res.sendStatus(204)
+    } catch (error) {
+        await session.abortTransaction()
+        return res.status(500).json(error)
+    }
 }

@@ -1,9 +1,11 @@
 import mongoose from 'mongoose'
 
-async function connectDB() {
+let conn
+
+export async function connectDB() {
     try {
         if (!mongoose.connection.readyState) {
-            await mongoose.connect(
+            conn = await mongoose.connect(
                 process.env.MONGODB_CONNECTION_STRING
             )
             return console.log('Mongodb Connected')
@@ -14,4 +16,4 @@ async function connectDB() {
     }
 }
 
-export default connectDB;
+export const connection = conn

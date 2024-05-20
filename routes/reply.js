@@ -1,12 +1,15 @@
 import { Router } from 'express'
-import { index, show, store, update, destroy } from '../controllers/replyController.js'
+import { index, show, store, update, destroy, score } from '../controllers/replyController.js'
 
 const router = Router()
 
-router.get('/replies', index)
-router.get('/replies/:id', show)
-router.post('/replies', store)
-router.put('/replies/:id', update)
-router.delete('/replies/:id', destroy)
+router.post('/:id/score', score)
+
+router.get('', index)
+router.get('/:id', show)
+router.post('', store)
+router.put('/:id', update)
+router.delete('/:id', destroy)
+
 
 export default router
