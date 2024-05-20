@@ -61,7 +61,10 @@ export const show = async (req, res) => {
             }
         }
     ])
-    return res.json({ status: 'success', data: subject })
+    if (subject.length > 0)
+        return res.json({ status: 'success', data: subject[0] })
+    
+    return res.status(404).json({ message: 'Subject ID not found' })
 }
 
 export const store = async (req, res) => {
