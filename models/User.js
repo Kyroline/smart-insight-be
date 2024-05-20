@@ -1,10 +1,10 @@
 import mongoose, { Schema } from 'mongoose'
 
 const schema = new Schema({
-    firstname: { type: String },
-    lastname: { type: String },
-    email: { type: String },
-    password: { type: String }
+    firstname: { type: String, required: true },
+    lastname: { type: String, required: true },
+    email: { type: String, required: true },
+    password: { type: String, required: true }
 })
 
 const User = mongoose.model('User', schema)

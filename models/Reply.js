@@ -1,20 +1,27 @@
 import { ObjectId } from 'mongodb'
 import mongoose, { Schema } from 'mongoose'
 
-const schema = new Schema({
-    discussion: { type: ObjectId },
-    parent: { type: ObjectId },
-    user: { type: ObjectId },
-    content: { type: String },
-    replyCount: { type: Number },
-    attachments: [{
-        name: { type: String },
-        file: { type: String },
-        type: { type: String }
-    }],
-    like: { type: Number },
-    dislike: { type: Number }
-});
+const schema = new Schema(
+    {
+        discussion: { type: ObjectId, required: true },
+        parent: { type: ObjectId, default: null },
+        user: { type: ObjectId, required: true },
+        content: { type: String, required: true },
+        replyCount: { type: Number, default: 0 },
+        attachments: [{
+            name: { type: String },
+            file: { type: String },
+            type: { type: String }
+        }],
+        score: { type: Number, default: 0 }
+    },
+    {
+        timestamps: {
+            createdAt: 'created_at',
+            updatedAt: 'updated_at'
+        }
+    }
+)
 
 const Reply = mongoose.model('Reply', schema)
 
