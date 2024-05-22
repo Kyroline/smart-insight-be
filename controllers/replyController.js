@@ -1,8 +1,7 @@
-import Discussion from '../models/Discussion.js';
+import Discussion from '../models/Discussion.js'
 import Reply from '../models/Reply.js'
-import mongoose from 'mongoose';
-import ReplyScore from '../models/ReplyScore.js';
-import { connection } from '../database/mongodb.js'
+import mongoose from 'mongoose'
+import ReplyScore from '../models/ReplyScore.js'
 
 export const index = async (req, res) => {
     try {
@@ -54,11 +53,11 @@ export const index = async (req, res) => {
             },
             {
                 $addFields: {
-                    'score': {
+                    'userScore': {
                         $cond: {
                             if: { $ne: ['$matchedScores', {}] },
                             then: '$matchedScores.score',
-                            else: false
+                            else: 0
                         }
                     }
                 }
@@ -126,11 +125,11 @@ export const show = async (req, res) => {
             },
             {
                 $addFields: {
-                    'score': {
+                    'userScore': {
                         $cond: {
                             if: { $ne: ['$matchedScores', {}] },
                             then: '$matchedScores.score',
-                            else: false
+                            else: 0
                         }
                     }
                 }
@@ -157,18 +156,17 @@ export const store = async (req, res) => {
     const session = await mongoose.connection.startSession()
     try {
         session.startTransaction()
-        const reply = await Reply.create({
+        const reply = await Reply.create([{
             discussion: discussion_id,
             parent: parent_id ?? null,
             user: req.user._id,
             content: content,
             replyCount: 0,
-            dislike: 0,
-            like: 0
-        }, { session })
+            score: 0
+        }], { session: session })
 
-        const discussion = await Discussion.updateOne({ _id: discussion_id }, { $inc: { replyCount: 1 } }, { session })
-        const parentReply = await Reply.updateOne({ _id: parent_id }, { $inc: { replyCount: 1 } }, { session })
+        const discussion = await Discussion.updateOne({ _id: discussion_id }, { $inc: { replyCount: 1 } }, { session: session })
+        const parentReply = await Reply.updateOne({ _id: parent_id }, { $inc: { replyCount: 1 } }, { session: session })
 
         await session.commitTransaction()
         session.endSession()
@@ -195,12 +193,38 @@ export const score = async (req, res) => {
         const { id } = req.params
         const { score } = req.body
 
-        await ReplyScore.updateOne(
+        const replyScoreBefore = await ReplyScore.findOneAndUpdate(
             { reply: id, user: req.user._id },
             { $set: { score: score } },
             { upsert: true, session: session }
         )
 
+        let scoreToUpdate = replyScoreBefore ? (replyScoreBefore.score * -1 + score) : score
+        const parentReply = await Reply.updateOne({ _id: id }, { $inc: { score: scoreToUpdate } }, { session: session })
+
+        await session.commitTransaction()
+        session.endSession()
+        return res.sendStatus(204)
+    } catch (error) {
+        await session.abortTransaction()
+        console.log(error)
+        return res.status(500).json(error)
+    }
+}
+
+export const deleteScore = async (req, res) => {
+    const session = await mongoose.connection.startSession()
+    try {
+        const id = req.params.id
+        session.startTransaction()
+
+        const replyScore = await ReplyScore.findOneAndDelete({ reply: id, user: req.user._id }, { session: session })
+
+        if (!replyScore) {
+            throw new Error('ReplyScore not found')
+        }
+
+        await Reply.updateOne({ _id: id }, { $inc: { score: replyScore.score * -1 } }, { session: session })
         await session.commitTransaction()
         session.endSession()
         return res.sendStatus(204)

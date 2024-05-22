@@ -1,9 +1,10 @@
 import { Router } from 'express'
-import { index, show, store, update, destroy, score } from '../controllers/discussionController.js'
+import { index, show, store, update, destroy, score, deleteScore } from '../controllers/discussionController.js'
 
 const router = Router()
 
 router.post('/:id/score', score)
+router.delete('/:id/score', deleteScore)
 
 router.get('', index)
 router.get('/:id', show)

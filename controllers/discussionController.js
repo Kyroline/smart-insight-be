@@ -50,11 +50,11 @@ export const index = async (req, res) => {
         },
         {
             $addFields: {
-                'score': {
+                'userScore': {
                     $cond: {
                         if: { $ne: ['$matchedScores', {}] },
                         then: '$matchedScores.score',
-                        else: false
+                        else: 0
                     }
                 }
             }
@@ -130,11 +130,11 @@ export const show = async (req, res) => {
             },
             {
                 $addFields: {
-                    'score': {
+                    'userScore': {
                         $cond: {
                             if: { $ne: ['$matchedScores', {}] },
                             then: '$matchedScores.score',
-                            else: false
+                            else: 0
                         }
                     }
                 }
@@ -166,8 +166,7 @@ export const store = async (req, res) => {
         title: title,
         content: content,
         replyCount: 0,
-        dislike: 0,
-        like: 0
+        score: 0
     })
 
     let discussionJson = discussion.toJSON()
@@ -206,10 +205,34 @@ export const score = async (req, res) => {
         const { id } = req.params
         const { score } = req.body
 
-        await DiscussionScore.updateOne({ discussion: id, user: req.user._id }, { $set: { score: score } }, { upsert: true, session: session })
+        const discussionScoreBefore = await DiscussionScore.findOneAndUpdate({ discussion: id, user: req.user._id }, { $set: { score: score } }, { upsert: true, session: session })
+
+        let scoreToUpdate = discussionScoreBefore ? (discussionScoreBefore.score * -1 + score) : score
+        
+        const discussion = await Discussion.updateOne({ _id: id }, { $inc: { score: scoreToUpdate } }, { session: session })
 
         await session.commitTransaction()
         session.endSession()
+        return res.sendStatus(204)
+    } catch (error) {
+        await session.abortTransaction()
+        return res.status(500).json(error)
+    }
+}
+
+export const deleteScore = async (req, res) => {
+    const session = await mongoose.connection.startSession()
+    try {
+        const id = req.params.id
+        session.startTransaction()
+
+        const discussionScore = await DiscussionScore.findOneAndDelete({ discussion: id, user: req.user._id }, { session: session })
+
+        await Discussion.updateOne({ _id: id }, { $inc: { score: discussionScore.score * -1 } }, { session: session })
+
+        await session.commitTransaction()
+        session.endSession()
+
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
