@@ -12,5 +12,4 @@ router.post('', store)
 router.put('/:id', update)
 router.delete('/:id', destroy)
 
-
 export default router

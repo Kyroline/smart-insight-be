@@ -1,6 +1,6 @@
 import { validateToken } from '../utils/jwt.js'
 
-export const isAuth = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         let [type, token] = req.headers['authorization'].split(' ')
 
@@ -14,3 +14,5 @@ export const isAuth = async (req, res, next) => {
         res.status(401).json({ message: 'Unauthenticated' })
     }
 }
+
+export default authMiddleware

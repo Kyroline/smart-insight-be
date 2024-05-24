@@ -4,9 +4,11 @@ import mongoose, { Schema } from 'mongoose'
 const schema = new Schema(
     {
         subject: { type: ObjectId },
+        teacher: { type: ObjectId },
         name: { type: String },
-        description: { type: String},
-        deadline: { type: Date }
+        description: { type: String },
+        deadline: { type: Date },
+        max_score: { type: Number }
     },
     {
         timestamps: {

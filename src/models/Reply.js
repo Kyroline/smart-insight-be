@@ -10,8 +10,8 @@ const schema = new Schema(
         replyCount: { type: Number, default: 0 },
         attachments: [{
             name: { type: String },
-            file: { type: String },
-            type: { type: String }
+            type: { type: String },
+            value: { type: String },
         }],
         score: { type: Number, default: 0 }
     },

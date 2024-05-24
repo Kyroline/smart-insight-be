@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 import Assignment from "../models/Assignment.js"
 import Subject from "../models/Subject.js"
 
