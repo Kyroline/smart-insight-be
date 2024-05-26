@@ -7,7 +7,11 @@ const schema = new Schema(
         student: { type: String, required: true },
         submitted_at: { type: Date, default: Date.now() },
         description: { type: String },
-        file_url: { type: String, required: true },
+        attachments: [{
+            name: { type: String },
+            type: { type: String },
+            value: { type: String },
+        }],
         grade: { type: Number, default: null },
         note: { type: String, default: null }
     }

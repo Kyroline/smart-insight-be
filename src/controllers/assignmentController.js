@@ -36,6 +36,28 @@ export const index = async (req, res) => {
                 $unwind: '$subject.teacher'
             },
             {
+                $lookup: {
+                    from: 'submission',
+                    let: { assignment_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$assignment', '$$assignment_id'] },
+                                        { $eq: ['$user', '$$user_id'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'submission',
+                }
+            },
+            {
+                $unwind: { path: '$submission', preserveNullAndEmptyArrays: true }
+            },
+            {
                 $addFields: {
                     'subject.student_count': { $size: '$subject.students' },
                     'submission_count': { $size: '$submissions' }
@@ -134,10 +156,31 @@ export const getAsStudent = async (req, res) => {
             {
                 $match: {
                     $or: [
-                        // { 'subject.teacher._id': new mongoose.Types.ObjectId(req.user._id) },
                         { 'subject.students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } }
                     ]
                 }
+            },
+            {
+                $lookup: {
+                    from: 'submission',
+                    let: { assignment_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$assignment', '$$assignment_id'] },
+                                        { $eq: ['$user', '$$user_id'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'submission',
+                }
+            },
+            {
+                $unwind: { path: 'submission', preserveNullAndEmptyArrays: true }
             },
             {
                 $project: {
@@ -196,7 +239,6 @@ export const getAsTeacher = async (req, res) => {
                 $match: {
                     $or: [
                         { 'subject.teacher._id': new mongoose.Types.ObjectId(req.user._id) },
-                        // { 'subject.students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } }
                     ]
                 }
             },

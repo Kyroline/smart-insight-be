@@ -8,7 +8,12 @@ const schema = new Schema(
         name: { type: String },
         description: { type: String },
         deadline: { type: Date },
-        max_score: { type: Number }
+        max_score: { type: Number },
+        attachments: [{
+            name: { type: String },
+            type: { type: String },
+            value: { type: String },
+        }]
     },
     {
         timestamps: {
