@@ -1,6 +1,6 @@
 import { ErrorResponse } from '../utils/errors.js'
 
-const DEBUG_MODE = process.env.DEBUG_MODE || 0
+const DEBUG_MODE = process.env.DEBUG_MODE || 1
 
 const errorMiddleware = (err, req, res, next) => {
     if (!err)
