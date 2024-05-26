@@ -1,4 +1,7 @@
 import { Router } from 'express'
+
+import * as Storage from '../controllers/storageController.js'
+
 import * as Auth from '../controllers/authController.js'
 import * as Assignment from '../controllers/assignmentController.js'
 import * as Discussion from '../controllers/discussionController.js'
@@ -6,10 +9,28 @@ import * as Reply from '../controllers/replyController.js'
 import * as Subject from '../controllers/subjectController.js'
 import * as Submission from '../controllers/submissionController.js'
 import * as Material from '../controllers/materialController.js'
+import * as Attendance from '../controllers/attendanceController.js'
 
 import * as Middleware from '../middlewares/index.js'
 
+import multer from 'multer'
+
+import path from 'path'
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '_' + file.originalname)
+    }
+})
+
+const upload = multer({ storage: storage })
+
 const router = Router()
+
+router.post('/upload', upload.single('file'), Storage.uploadFile)
 
 router.post('/auth/login', Auth.login)
 router.post('/auth/register', Auth.register)
@@ -45,8 +66,10 @@ router.post('/subjects', Middleware.authMiddleware, Subject.store)
 router.put('/subjects/:id', Middleware.authMiddleware, Subject.update)
 router.delete('/subjects/:id', Middleware.authMiddleware, Subject.destroy)
 router.post('/subjects/:id/enroll', Middleware.authMiddleware, Subject.enroll)
+router.post('/subjects/:id/unenroll', Middleware.authMiddleware, Subject.unenroll)
+router.get('/subjects/:id/check_status', Middleware.authMiddleware, Subject.checkStatus)
 
-router.get('/submissions', Middleware.authMiddleware, Submission.index)
+// router.get('/submissions', Middleware.authMiddleware, Submission.index)
 router.get('/submissions/:id', Middleware.authMiddleware, Submission.show)
 router.post('/submissions', Middleware.authMiddleware, Submission.store)
 router.put('/submissions/:id', Middleware.authMiddleware, Submission.update)
@@ -57,5 +80,12 @@ router.get('/materials/:id', Middleware.authMiddleware, Material.show)
 router.post('/materials', Middleware.authMiddleware, Material.store)
 router.put('/materials/:id', Middleware.authMiddleware, Material.update)
 router.delete('/materials/:id', Middleware.authMiddleware, Material.destroy)
+
+router.get('/attendances', Middleware.authMiddleware, Attendance.index)
+router.get('/attendances/:id', Middleware.authMiddleware, Attendance.show)
+router.post('/attendances', Middleware.authMiddleware, Attendance.store)
+router.put('/attendances/:id', Middleware.authMiddleware, Attendance.update)
+router.delete('/attendances/:id', Middleware.authMiddleware, Attendance.destroy)
+router.post('/attendances/:id/present', Middleware.authMiddleware, Attendance.recordPresent)
 
 export default router
