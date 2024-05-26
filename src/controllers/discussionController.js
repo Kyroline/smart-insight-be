@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import DiscussionScore from '../models/DiscussionScore.js'
 
 export const index = async (req, res) => {
+    const subject_id = new mongoose.Types.ObjectId(req.query.subject)
     const discussion = await Discussion.aggregate([
         {
             $lookup: {
@@ -65,6 +66,9 @@ export const index = async (req, res) => {
                 'user.password': 0,
                 'matchedScores': 0
             }
+        },
+        {
+            $match: { 'subject._id' : subject_id }
         }
     ])
 
@@ -208,7 +212,7 @@ export const score = async (req, res) => {
         const discussionScoreBefore = await DiscussionScore.findOneAndUpdate({ discussion: id, user: req.user._id }, { $set: { score: score } }, { upsert: true, session: session })
 
         let scoreToUpdate = discussionScoreBefore ? (discussionScoreBefore.score * -1 + score) : score
-        
+
         const discussion = await Discussion.updateOne({ _id: id }, { $inc: { score: scoreToUpdate } }, { session: session })
 
         await session.commitTransaction()
