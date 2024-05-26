@@ -123,9 +123,34 @@ export const store = async (req, res) => {
 }
 
 export const update = async (req, res) => {
+    try {
+        const { name, description, attachments } = req.body
+        const material = await Material.updateOne({ _id: req.params.id }, {
+            $set: {
+                name: name,
+                description: description,
+                attachments: attachments
+            }
+        })
 
+        if (material.matchedCount == 0)
+            throw new ErrorResponse(404, 'Material ID not found!')
+
+        return res.sendStatus(201)
+    } catch (error) {
+        next(error)
+    }
 }
 
 export const destroy = async (req, res) => {
+    try {
+        const material = await Material.deleteOne({ _id: req.params.id })
 
+        if (material.deletedCount == 0)
+            throw new ErrorResponse(404, 'Material ID not found!')
+
+        return res.sendStatus(201)
+    } catch (error) {
+        next(error)
+    }
 }
