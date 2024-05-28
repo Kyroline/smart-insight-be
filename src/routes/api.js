@@ -35,6 +35,7 @@ router.post('/upload', upload.single('file'), Storage.uploadFile)
 router.post('/auth/login', Auth.login)
 router.post('/auth/register', Auth.register)
 router.get('/auth/validate', Middleware.authMiddleware, Auth.validate)
+router.put('/auth/users', Middleware.authMiddleware, Auth.update)
 
 router.get('/assignments/students', Middleware.authMiddleware, Assignment.getAsStudent)
 router.get('/assignments/teachers', Middleware.authMiddleware, Assignment.getAsTeacher)
