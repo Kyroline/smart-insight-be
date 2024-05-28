@@ -71,7 +71,7 @@ export const update = async (req, res, next) => {
 
         let match = await bcrypt.compare(password, user.password)
         if (!match)
-            throw new ErrorResponse(401, 'Wrong password!')
+            throw new ErrorResponse(403, 'Wrong password!')
 
         await session.commitTransaction()
         await session.endSession()

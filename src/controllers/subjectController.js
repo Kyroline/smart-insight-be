@@ -136,7 +136,7 @@ export const store = async (req, res, next) => {
             name: name,
             teacher: req.user._id
         })
-    
+
         await subject.save();
         return res.json({ status: 'success', data: subject })
     } catch (error) {
@@ -148,7 +148,7 @@ export const update = async (req, res, next) => {
     try {
         const { name } = req.body
         const subject = await Subject.updateOne({ _id: req.params.id }, { $set: { name: name } })
-    
+
         if (subject.matchedCount == 1)
             return res.status(201).json({ message: 'Record updated.' })
     } catch (error) {
@@ -169,7 +169,8 @@ export const enroll = async (req, res, next) => {
         const subject = await Subject.findOneAndUpdate({ _id: id }, {
             $addToSet: {
                 students: req.user._id
-            }
+            },
+            $inc: { student_count: 1 }
         }, { session: session })
 
         if (subject.teacher == req.user._id)
@@ -193,7 +194,8 @@ export const unenroll = async (req, res, next) => {
         const subject = await Subject.findOneAndUpdate({ _id: id }, {
             $pull: {
                 students: req.user._id
-            }
+            },
+            $inc: { student_count: -1 }
         }, { session: session })
 
         if (subject.teacher == req.user._id)

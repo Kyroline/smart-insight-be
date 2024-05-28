@@ -61,7 +61,6 @@ export const index = async (req, res) => {
             },
             {
                 $addFields: {
-                    'subject.student_count': { $size: '$subject.students' },
                     'submission_count': { $size: '$submissions' }
                 }
             },
@@ -148,7 +147,6 @@ export const show = async (req, res, next) => {
             },
             {
                 $addFields: {
-                    'subject.student_count': { $size: '$subject.students' },
                     'submission_count': { $size: '$submissions' }
                 }
             },
@@ -176,7 +174,9 @@ export const show = async (req, res, next) => {
 }
 
 export const store = async (req, res) => {
+    const session = await mongoose.connection.startSession()
     try {
+        session.startTransaction()
         const { subject_id, name, description, deadline, attachments, max_score } = req.body
         const subject = await Subject.findOne({ _id: subject_id })
 
@@ -186,19 +186,26 @@ export const store = async (req, res) => {
         if (subject.teacher != req.user._id)
             throw new Error('Forbidden')
 
-        const assignment = new Assignment({
+        const assignment = await Assignment.create([{
             subject: subject_id,
             name: name,
             description: description,
             deadline: deadline,
             attachments: attachments,
             max_score: max_score,
-        })
+        }], { session: session })
 
-        await assignment.save()
+
+        await Subject.updateOne({ _id: subject_id }, { $inc: { assignment_count: 1 } }, { session: session })
+        
+        await session.commitTransaction()
+        await session.endSession()
 
         return res.status(200).json(assignment.toJSON())
     } catch (error) {
+        await session.abortTransaction()
+        await session.endSession()
+
         return res.status(500).json(error)
     }
 }
@@ -360,7 +367,6 @@ export const getAsTeacher = async (req, res, next) => {
             },
             {
                 $addFields: {
-                    'subject.student_count': { $size: '$subject.students' },
                     'submission_count': { $size: '$submissions' }
                 }
             },

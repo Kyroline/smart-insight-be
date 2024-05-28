@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import Material from '../models/Material.js'
 import { ErrorResponse } from '../utils/errors.js'
+import Subject from '../models/Subject.js'
 
 export const index = async (req, res) => {
     try {
@@ -105,7 +106,10 @@ export const show = async (req, res) => {
 }
 
 export const store = async (req, res) => {
+
+    const session = await mongoose.connection.startSession()
     try {
+        session.startTransaction()
         const { subject_id, name, description, attachments } = req.body
 
         await Material.create([{
@@ -114,10 +118,15 @@ export const store = async (req, res) => {
             name: name,
             description: description,
             attachments: attachments
-        }])
+        }], { session: session })
 
+        await Subject.updateOne({ _id: subject_id }, { $inc: { material_count: 1 } }, { session: session })
+
+        await session.commitTransaction()
+        await session.endSession()
         return res.sendStatus(201)
     } catch (error) {
+        await session.abortTransaction()
         next(error)
     }
 }
