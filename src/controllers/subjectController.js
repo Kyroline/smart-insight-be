@@ -31,6 +31,13 @@ export const index = async (req, res) => {
                         then: true,
                         else: false
                     }
+                },
+                'enrolled_class': {
+                    $cond: {
+                        if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
+                        then: true,
+                        else: false
+                    }
                 }
             }
         },
@@ -58,14 +65,6 @@ export const show = async (req, res) => {
         {
             $lookup: {
                 from: 'users',
-                localField: 'students',
-                foreignField: '_id',
-                as: 'students'
-            }
-        },
-        {
-            $lookup: {
-                from: 'users',
                 localField: 'teacher',
                 foreignField: '_id',
                 as: 'teacher'
@@ -73,6 +72,40 @@ export const show = async (req, res) => {
         },
         {
             $unwind: '$teacher'
+        },
+        {
+            $match: {
+                $or: [
+                    { 'students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } },
+                    { 'teacher._id': new mongoose.Types.ObjectId(req.user._id) }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                'enrolled_class': {
+                    $cond: {
+                        if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
+                        then: true,
+                        else: false
+                    }
+                },
+                'teached_class': {
+                    $cond: {
+                        if: { $eq: [new mongoose.Types.ObjectId(req.user._id), '$teacher._id'] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'students',
+                foreignField: '_id',
+                as: 'students'
+            }
         },
         {
             $project: {

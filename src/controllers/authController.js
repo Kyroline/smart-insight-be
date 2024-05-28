@@ -24,19 +24,23 @@ export const login = async (req, res, next) => {
 }
 
 export const register = async (req, res, next) => {
-    let password = await bcrypt.hash(req.body.password, 10)
-
-    const user = await User.create({
-        firstname: req.body.firstname,
-        lastname: req.body.lastname,
-        email: req.body.email,
-        password: password
-    })
-
-    let userJson = user.toJSON()
-
-    delete userJson.password
-    res.json({ user: userJson, token: generateToken(userJson) })
+    try {
+        let password = await bcrypt.hash(req.body.password, 10)
+    
+        const user = await User.create({
+            firstname: req.body.firstname,
+            lastname: req.body.lastname,
+            email: req.body.email,
+            password: password
+        })
+    
+        let userJson = user.toJSON()
+    
+        delete userJson.password
+        return res.json({ user: userJson, token: generateToken(userJson) })
+    } catch (error) {
+        next(error)
+    }
 }
 
 export const validate = async (req, res, next) => {
