@@ -2,141 +2,158 @@ import Subject from '../models/Subject.js'
 import mongoose from 'mongoose'
 import { ErrorResponse } from '../utils/errors.js'
 
-export const index = async (req, res) => {
-    const subjects = await Subject.aggregate([
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'teacher',
-                foreignField: '_id',
-                as: 'teacher'
-            }
-        },
-        {
-            $unwind: '$teacher'
-        },
-        {
-            $match: {
-                $or: [
-                    { 'students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } },
-                    { 'teacher._id': new mongoose.Types.ObjectId(req.user._id) }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                'teached_class': {
-                    $cond: {
-                        if: { $eq: [new mongoose.Types.ObjectId(req.user._id), '$teacher._id'] },
-                        then: true,
-                        else: false
-                    }
-                },
-                'enrolled_class': {
-                    $cond: {
-                        if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
-                        then: true,
-                        else: false
+export const index = async (req, res, next) => {
+    try {
+        const subjects = await Subject.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'teacher',
+                    foreignField: '_id',
+                    as: 'teacher'
+                }
+            },
+            {
+                $unwind: '$teacher'
+            },
+            {
+                $match: {
+                    $or: [
+                        { 'students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } },
+                        { 'teacher._id': new mongoose.Types.ObjectId(req.user._id) }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    'teached_class': {
+                        $cond: {
+                            if: { $eq: [new mongoose.Types.ObjectId(req.user._id), '$teacher._id'] },
+                            then: true,
+                            else: false
+                        }
+                    },
+                    'enrolled_class': {
+                        $cond: {
+                            if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
+                            then: true,
+                            else: false
+                        }
                     }
                 }
+            },
+            {
+                $project: {
+                    'teacher.password': 0
+                }
             }
-        },
-        {
-            $project: {
-                'teacher.password': 0
-            }
-        }
-    ])
+        ])
 
-    return res.json({ status: 'success', data: subjects })
-}
-
-export const show = async (req, res) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new Error('Invalid ID format');
+        return res.json({ status: 'success', data: subjects })
+    } catch (error) {
+        next(error)
     }
 
-    const id = new mongoose.Types.ObjectId(req.params.id);
+}
 
-    const subject = await Subject.aggregate([
-        {
-            $match: { _id: id }
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'teacher',
-                foreignField: '_id',
-                as: 'teacher'
-            }
-        },
-        {
-            $unwind: '$teacher'
-        },
-        {
-            $match: {
-                $or: [
-                    { 'students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } },
-                    { 'teacher._id': new mongoose.Types.ObjectId(req.user._id) }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                'enrolled_class': {
-                    $cond: {
-                        if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
-                        then: true,
-                        else: false
-                    }
-                },
-                'teached_class': {
-                    $cond: {
-                        if: { $eq: [new mongoose.Types.ObjectId(req.user._id), '$teacher._id'] },
-                        then: true,
-                        else: false
+export const show = async (req, res, next) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            throw new Error('Invalid ID format');
+        }
+
+        const id = new mongoose.Types.ObjectId(req.params.id);
+
+        const subject = await Subject.aggregate([
+            {
+                $match: { _id: id }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'teacher',
+                    foreignField: '_id',
+                    as: 'teacher'
+                }
+            },
+            {
+                $unwind: '$teacher'
+            },
+            {
+                $match: {
+                    $or: [
+                        { 'students': { $in: [new mongoose.Types.ObjectId(req.user._id)] } },
+                        { 'teacher._id': new mongoose.Types.ObjectId(req.user._id) }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    'enrolled_class': {
+                        $cond: {
+                            if: { $in: [new mongoose.Types.ObjectId(req.user._id), '$students'] },
+                            then: true,
+                            else: false
+                        }
+                    },
+                    'teached_class': {
+                        $cond: {
+                            if: { $eq: [new mongoose.Types.ObjectId(req.user._id), '$teacher._id'] },
+                            then: true,
+                            else: false
+                        }
                     }
                 }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'students',
+                    foreignField: '_id',
+                    as: 'students'
+                }
+            },
+            {
+                $project: {
+                    'teacher.password': 0,
+                    'students.password': 0
+                }
             }
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'students',
-                foreignField: '_id',
-                as: 'students'
-            }
-        },
-        {
-            $project: {
-                'teacher.password': 0,
-                'students.password': 0
-            }
-        }
-    ])
-    if (subject.length > 0)
-        return res.json({ status: 'success', data: subject[0] })
+        ])
+        if (subject.length > 0)
+            return res.json({ status: 'success', data: subject[0] })
 
-    return res.status(404).json({ message: 'Subject ID not found' })
+        throw new ErrorResponse(404, 'Subject ID not found')
+    } catch (error) {
+        next(error)
+    }
 }
 
-export const store = async (req, res) => {
-    const name = req.body.name
-    const subject = new Subject({
-        name: name,
-        teacher: req.user._id
-    })
-
-    await subject.save();
-    return res.json({ status: 'success', data: subject });
+export const store = async (req, res, next) => {
+    try {
+        const name = req.body.name
+        const subject = new Subject({
+            name: name,
+            teacher: req.user._id
+        })
+    
+        await subject.save();
+        return res.json({ status: 'success', data: subject })
+    } catch (error) {
+        next(error)
+    }
 }
 
-export const update = async (req, res) => {
-    const { name } = req.body
-    const subject = await Subject.updateOne({ _id: req.params.id }, { $set: { name: name } })
-
-    if (subject.matchedCount == 1)
-        return res.status(201).json({ message: 'Record updated.' })
+export const update = async (req, res, next) => {
+    try {
+        const { name } = req.body
+        const subject = await Subject.updateOne({ _id: req.params.id }, { $set: { name: name } })
+    
+        if (subject.matchedCount == 1)
+            return res.status(201).json({ message: 'Record updated.' })
+    } catch (error) {
+        next(error)
+    }
 }
 
 export const destroy = async (req, res) => {

@@ -2,80 +2,84 @@ import Discussion from '../models/Discussion.js'
 import mongoose from 'mongoose'
 import DiscussionScore from '../models/DiscussionScore.js'
 
-export const index = async (req, res) => {
-    const subject_id = new mongoose.Types.ObjectId(req.query.subject)
-    const discussion = await Discussion.aggregate([
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'user',
-                foreignField: '_id',
-                as: 'user'
-            }
-        },
-        {
-            $lookup: {
-                from: 'subjects',
-                localField: 'subject',
-                foreignField: '_id',
-                as: 'subject'
-            }
-        },
-        {
-            $unwind: '$user'
-        },
-        {
-            $unwind: '$subject'
-        },
-        {
-            $lookup: {
-                from: 'discussionscores',
-                let: { discussion_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
-                pipeline: [
-                    {
-                        $match: {
-                            $expr: {
-                                $and: [
-                                    { $eq: ['$discussion', '$$discussion_id'] },
-                                    { $eq: ['$user', '$$user_id'] }
-                                ]
+export const index = async (req, res, next) => {
+    try {
+        const subject_id = new mongoose.Types.ObjectId(req.query.subject)
+        const discussion = await Discussion.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'subjects',
+                    localField: 'subject',
+                    foreignField: '_id',
+                    as: 'subject'
+                }
+            },
+            {
+                $unwind: '$user'
+            },
+            {
+                $unwind: '$subject'
+            },
+            {
+                $lookup: {
+                    from: 'discussionscores',
+                    let: { discussion_id: '$_id', user_id: new mongoose.Types.ObjectId(req.user._id) },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$discussion', '$$discussion_id'] },
+                                        { $eq: ['$user', '$$user_id'] }
+                                    ]
+                                }
                             }
                         }
-                    }
-                ],
-                as: 'matchedScores',
-            }
-        },
-        {
-            $unwind: { path: '$matchedScores', preserveNullAndEmptyArrays: true }
-        },
-        {
-            $addFields: {
-                'userScore': {
-                    $cond: {
-                        if: { $ne: ['$matchedScores', {}] },
-                        then: '$matchedScores.score',
-                        else: 0
+                    ],
+                    as: 'matchedScores',
+                }
+            },
+            {
+                $unwind: { path: '$matchedScores', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $addFields: {
+                    'userScore': {
+                        $cond: {
+                            if: { $ne: ['$matchedScores', {}] },
+                            then: '$matchedScores.score',
+                            else: 0
+                        }
                     }
                 }
+            },
+            {
+                $project: {
+                    'subject.students': 0,
+                    'user.password': 0,
+                    'matchedScores': 0
+                }
+            },
+            {
+                $match: { 'subject._id': subject_id }
             }
-        },
-        {
-            $project: {
-                'subject.students': 0,
-                'user.password': 0,
-                'matchedScores': 0
-            }
-        },
-        {
-            $match: { 'subject._id' : subject_id }
-        }
-    ])
+        ])
 
-    return res.json({ message: "Success", data: discussion })
+        return res.json({ message: "Success", data: discussion })
+    } catch (error) {
+        next(error)
+    }
 }
 
-export const show = async (req, res) => {
+export const show = async (req, res, next) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             throw new Error('Invalid ID format');
@@ -157,25 +161,29 @@ export const show = async (req, res) => {
 
         return res.json({ message: "Success", data: discussion[0] })
     } catch (error) {
-        return res.status(500).json({ message: error.message })
+        next(error)
     }
 }
 
-export const store = async (req, res) => {
-    const { subject_id, title, content } = req.body
+export const store = async (req, res, next) => {
+    try {
+        const { subject_id, title, content } = req.body
 
-    const discussion = await Discussion.create({
-        subject: subject_id,
-        user: req.user._id,
-        title: title,
-        content: content,
-        replyCount: 0,
-        score: 0
-    })
+        const discussion = await Discussion.create({
+            subject: subject_id,
+            user: req.user._id,
+            title: title,
+            content: content,
+            replyCount: 0,
+            score: 0
+        })
 
-    let discussionJson = discussion.toJSON()
+        let discussionJson = discussion.toJSON()
 
-    return res.json({ message: "Record created succesfully.", data: discussionJson })
+        return res.json({ message: "Record created succesfully.", data: discussionJson })
+    } catch (error) {
+        next(error)
+    }
 }
 
 export const update = async (req, res) => {

@@ -3,7 +3,7 @@ import Reply from '../models/Reply.js'
 import mongoose from 'mongoose'
 import ReplyScore from '../models/ReplyScore.js'
 
-export const index = async (req, res) => {
+export const index = async (req, res, next) => {
     try {
         const matchQuery = { $match: {} }
         if (req.query.discussion && mongoose.Types.ObjectId.isValid(req.query.discussion))
@@ -75,11 +75,11 @@ export const index = async (req, res) => {
 
         return res.status(200).json({ data: reply })
     } catch (error) {
-        return res.status(404).json(error)
+        next(error)
     }
 }
 
-export const show = async (req, res) => {
+export const show = async (req, res, next) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id))
             throw new Error('Discussion ID not found')
@@ -147,11 +147,11 @@ export const show = async (req, res) => {
 
         return res.status(200).json({ data: reply })
     } catch (error) {
-        return res.status(404).json({ error })
+        next(error)
     }
 }
 
-export const store = async (req, res) => {
+export const store = async (req, res, next) => {
     const { discussion_id, parent_id, content } = req.body
     const session = await mongoose.connection.startSession()
     try {
@@ -174,7 +174,7 @@ export const store = async (req, res) => {
         return res.status(200).json({ message: 'Success', data: reply })
     } catch (error) {
         await session.abortTransaction()
-        return res.status(500).json(error)
+        next(error)
     }
 }
 
@@ -186,7 +186,7 @@ export const destroy = async (req, res) => {
 
 }
 
-export const score = async (req, res) => {
+export const score = async (req, res, next) => {
     const session = await mongoose.connection.startSession()
     try {
         session.startTransaction()
@@ -207,12 +207,11 @@ export const score = async (req, res) => {
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
-        console.log(error)
-        return res.status(500).json(error)
+        next(error)
     }
 }
 
-export const deleteScore = async (req, res) => {
+export const deleteScore = async (req, res, next) => {
     const session = await mongoose.connection.startSession()
     try {
         const id = req.params.id
@@ -230,6 +229,6 @@ export const deleteScore = async (req, res) => {
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
-        return res.status(500).json(error)
+        next(error)
     }
 }
