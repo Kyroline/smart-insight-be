@@ -51,7 +51,7 @@ export const index = async (req, res) => {
     }
 }
 
-export const show = async (req, res) => {
+export const show = async (req, res, next) => {
     try {
 
         if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id))
@@ -86,9 +86,6 @@ export const show = async (req, res) => {
                 $unwind: '$teacher'
             },
             {
-                $match: { 'subject._id': subjectId }
-            },
-            {
                 $project: {
                     'subject.students': 0,
                     'teacher.password': 0
@@ -99,7 +96,7 @@ export const show = async (req, res) => {
         if (material.length < 1)
             throw new ErrorResponse(404, 'Material not found!')
 
-        return res.status(200).json({ data: material })
+        return res.status(200).json({ data: material[0] })
     } catch (error) {
         next(error)
     }

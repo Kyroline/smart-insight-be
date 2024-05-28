@@ -2,10 +2,14 @@ import mongoose from 'mongoose'
 import Attendance from '../models/Attendance.js'
 import Subject from '../models/Subject.js'
 import { ErrorResponse } from '../utils/errors.js'
+import { ObjectId } from 'mongodb'
 
 export const index = async (req, res, next) => {
     try {
         const attendance = await Attendance.aggregate([
+            {
+                $match: {subject: ObjectId.createFromHexString(req.query.subject)}
+            },
             {
                 $lookup: {
                     from: 'subjects',
@@ -45,7 +49,13 @@ export const index = async (req, res, next) => {
 }
 
 export const show = async (req, res, next) => {
+    try {
+        const attendance = await Attendance.findOne({ _id: req.params.id })
 
+        return res.json({ data: attendance })
+    } catch (error) {
+        next(error)
+    }
 }
 
 export const store = async (req, res, next) => {
