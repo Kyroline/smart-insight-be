@@ -199,14 +199,14 @@ export const store = async (req, res) => {
         await Subject.updateOne({ _id: subject_id }, { $inc: { assignment_count: 1 } }, { session: session })
         
         await session.commitTransaction()
-        await session.endSession()
 
-        return res.status(200).json(assignment.toJSON())
+        return res.sendStatus(200)
     } catch (error) {
         await session.abortTransaction()
-        await session.endSession()
 
         return res.status(500).json(error)
+    } finally {
+        session.endSession()
     }
 }
 

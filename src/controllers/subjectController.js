@@ -177,11 +177,13 @@ export const enroll = async (req, res, next) => {
             throw new ErrorResponse(422, `You can't enroll to your own class!`)
 
         await session.commitTransaction()
-        await session.endSession()
+        
         return res.status(204).json({ 'message': 'Accepted' })
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -202,12 +204,13 @@ export const unenroll = async (req, res, next) => {
             throw new ErrorResponse(422, `You can't enroll to your own class let alone removing yourself from your own class!`)
 
         await session.commitTransaction()
-        await session.endSession()
 
         return res.status(204).json({ 'message': 'Accepted' })
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 

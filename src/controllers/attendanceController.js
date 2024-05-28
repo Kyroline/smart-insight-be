@@ -71,13 +71,14 @@ export const store = async (req, res, next) => {
         }], { session: session })
 
         await session.commitTransaction()
-        await session.endSession()
 
         return res.status(200).json({ message: 'Record created!' })
     } catch (error) {
         console.log(error)
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -101,12 +102,13 @@ export const update = async (req, res, next) => {
             throw new ErrorResponse(403, 'Unauthorized!')
 
         await session.commitTransaction()
-        await session.endSession()
 
         return res.status(200).json({ message: 'Record created!' })
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -128,12 +130,13 @@ export const destroy = async (req, res, next) => {
             throw new ErrorResponse(403, 'Unauthorized action!')
 
         await session.commitTransaction()
-        await session.endSession()
 
         return res.status(200).json({ message: 'Record created!' })
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -163,12 +166,13 @@ export const recordPresent = async (req, res, next) => {
         await Attendance.updateOne({ _id: id }, { $addToSet: { present_students: req.user._id } }, { session: session })
 
         await session.commitTransaction()
-        await session.endSession()
 
         return res.status(204).json({ message: 'Accepted' })
 
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }

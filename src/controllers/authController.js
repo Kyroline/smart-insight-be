@@ -74,11 +74,11 @@ export const update = async (req, res, next) => {
             throw new ErrorResponse(403, 'Wrong password!')
 
         await session.commitTransaction()
-        await session.endSession()
-
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 } 

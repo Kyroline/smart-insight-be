@@ -123,11 +123,12 @@ export const store = async (req, res) => {
         await Subject.updateOne({ _id: subject_id }, { $inc: { material_count: 1 } }, { session: session })
 
         await session.commitTransaction()
-        await session.endSession()
         return res.sendStatus(201)
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 

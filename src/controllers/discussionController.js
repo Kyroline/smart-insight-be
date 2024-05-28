@@ -224,11 +224,12 @@ export const score = async (req, res) => {
         const discussion = await Discussion.updateOne({ _id: id }, { $inc: { score: scoreToUpdate } }, { session: session })
 
         await session.commitTransaction()
-        session.endSession()
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
         return res.status(500).json(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -243,11 +244,12 @@ export const deleteScore = async (req, res) => {
         await Discussion.updateOne({ _id: id }, { $inc: { score: discussionScore.score * -1 } }, { session: session })
 
         await session.commitTransaction()
-        session.endSession()
 
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
         return res.status(500).json(error)
+    } finally {
+        session.endSession()
     }
 }

@@ -169,12 +169,13 @@ export const store = async (req, res, next) => {
         const parentReply = await Reply.updateOne({ _id: parent_id }, { $inc: { replyCount: 1 } }, { session: session })
 
         await session.commitTransaction()
-        session.endSession()
 
         return res.status(200).json({ message: 'Success', data: reply })
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -203,11 +204,13 @@ export const score = async (req, res, next) => {
         const parentReply = await Reply.updateOne({ _id: id }, { $inc: { score: scoreToUpdate } }, { session: session })
 
         await session.commitTransaction()
-        session.endSession()
+        
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
 
@@ -225,10 +228,12 @@ export const deleteScore = async (req, res, next) => {
 
         await Reply.updateOne({ _id: id }, { $inc: { score: replyScore.score * -1 } }, { session: session })
         await session.commitTransaction()
-        session.endSession()
+        
         return res.sendStatus(204)
     } catch (error) {
         await session.abortTransaction()
         next(error)
+    } finally {
+        session.endSession()
     }
 }
