@@ -4,7 +4,7 @@ import mongoose, { Schema } from 'mongoose'
 const schema = new Schema(
     {
         assignment: { type: ObjectId, required: true },
-        student: { type: String, required: true },
+        student: { type: ObjectId, required: true },
         submitted_at: { type: Date, default: Date.now() },
         description: { type: String },
         attachments: [{
