@@ -59,13 +59,20 @@ export const validate = async (req, res, next) => {
 }
 
 export const update = async (req, res, next) => {
-    const { firstname, lastname, email, password } = req.body
+    const { firstname, lastname, email, password, new_password } = req.body
+    const updateQuery = { firstname: firstname, lastname: lastname, email: email }
+
+    if (new_password) {
+        let new_password_hash = await bcrypt.hash(new_password, 10)
+        updateQuery.password = new_password_hash
+    }
+
     const session = await mongoose.connection.startSession()
     try {
         session.startTransaction()
         const user = await User.findOneAndUpdate(
             { _id: req.user._id },
-            { firstname: firstname, lastname: lastname, email: email },
+            updateQuery,
             { session: session }
         ).select('+password')
 
